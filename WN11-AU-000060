@@ -1,0 +1,22 @@
+Powershell script fix
+
+# Fix for WN11-AU-000060
+# Purpose: Enable "Success" auditing for the "Group Membership" subcategory.
+
+$subcategory = "Group Membership"
+
+try {
+    # Enable Success auditing for the Group Membership subcategory
+    auditpol /set /subcategory:"$subcategory" /success:enable /failure:disable
+
+    # Optional: Verify the change was applied successfully
+    $verify = auditpol /get /subcategory:"$subcategory" 2>$null
+    if ($verify -match "Success") {
+        Write-Host "SUCCESS: Auditing for 'Group Membership' has been updated to include 'Success'." -ForegroundColor Green
+    } else {
+        Write-Host "WARNING: The command ran, but verification failed. Please check manually." -ForegroundColor Yellow
+    }
+}
+catch {
+    Write-Host "ERROR: Failed to update the audit policy. Ensure you are running as Administrator." -ForegroundColor Red
+}
