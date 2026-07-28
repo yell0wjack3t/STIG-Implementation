@@ -1,22 +1,28 @@
-Powershell script fix
+# Requires: Administrator
 
-# Fix for WN11-AU-000060
-# Purpose: Enable "Success" auditing for the "Group Membership" subcategory.
+Write-Host "Remediating WN11-AU-000060..." -ForegroundColor Cyan
 
-$subcategory = "Group Membership"
+# Enable "Audit: Force audit policy subcategory settings..."
+$RegPath = "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa"
+$ValueName = "SCENoApplyLegacyAuditPolicy"
 
-try {
-    # Enable Success auditing for the Group Membership subcategory
-    auditpol /set /subcategory:"$subcategory" /success:enable /failure:disable
-
-    # Optional: Verify the change was applied successfully
-    $verify = auditpol /get /subcategory:"$subcategory" 2>$null
-    if ($verify -match "Success") {
-        Write-Host "SUCCESS: Auditing for 'Group Membership' has been updated to include 'Success'." -ForegroundColor Green
-    } else {
-        Write-Host "WARNING: The command ran, but verification failed. Please check manually." -ForegroundColor Yellow
-    }
+if (-not (Test-Path $RegPath)) {
+    New-Item -Path $RegPath -Force | Out-Null
 }
-catch {
-    Write-Host "ERROR: Failed to update the audit policy. Ensure you are running as Administrator." -ForegroundColor Red
-}
+
+New-ItemProperty -Path $RegPath `
+    -Name $ValueName `
+    -Value 1 `
+    -PropertyType DWord `
+    -Force | Out-Null
+
+# Configure Audit Group Membership
+auditpol.exe /set /subcategory:"Group Membership" /success:enable /failure:disable | Out-Null
+
+# --------------------------
+# Validation
+# --------------------------
+
+$Passed = $true
+
+# Check registry value
